@@ -23,7 +23,7 @@ def ai():
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost",   # ← обязательно для free-моделей
+        # "HTTP-Referer": "http://localhost",   # ← обязательно для free-моделей
         "X-Title": "Almaty DataLab"
     }
 
