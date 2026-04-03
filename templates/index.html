@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Almaty Smart City | Full Analytics</title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=ВАШ_API_КЛЮЧ&lang=ru_RU" type="text/javascript"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+
+<header>
+    <div class="logo">ALMATY <span>DATALAB</span></div>
+    <div class="tabs" id="nav-tabs">
+        <button onclick="setMode('estate', this)" class="active">🏠 Недвижимость</button>
+        <button onclick="setMode('commerce', this)">📈 Коммерция</button>
+        <button onclick="setMode('city', this)">🏛️ Акимат</button>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()">🌓</button>
+</header>
+
+<div id="main">
+    <div id="map"></div>
+    <aside id="sidebar">
+        <div id="placeholder">
+            <h2>Аналитика города</h2>
+            <p style="color: #6b7280; line-height: 1.5;">Карта окрашена по 5-уровневой шкале. Выберите любой район для детального разбора или введите название района в строку ИИ.</p>
+            <div class="legend">
+                <div class="leg-item" style="background: var(--lvl-1);" title="Отлично"></div>
+                <div class="leg-item" style="background: var(--lvl-2);" title="Хорошо"></div>
+                <div class="leg-item" style="background: var(--lvl-3);" title="Умеренно"></div>
+                <div class="leg-item" style="background: var(--lvl-4);" title="Напряженно"></div>
+                <div class="leg-item" style="background: var(--lvl-5);" title="Критично"></div>
+            </div>
+        </div>
+
+        <div id="content" class="hidden">
+            <h1 class="district-title" id="d-name">Район</h1>
+
+            <div class="data-card">
+                <div class="data-header">
+                    <span class="source-tag" id="tag-1">Источник 1</span>
+                </div>
+                <div class="stat-value" id="val-1">--</div>
+                <div class="stat-label" id="lbl-1">Показатель 1</div>
+            </div>
+
+            <div class="data-card">
+                <div class="data-header">
+                    <span class="source-tag" id="tag-2" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">Источник 2</span>
+                </div>
+                <div class="stat-value" id="val-2">--</div>
+                <div class="stat-label" id="lbl-2">Показатель 2</div>
+            </div>
+
+            <div class="ai-box">
+                <div class="ai-title">⚡ ИИ-Вердикт</div>
+                <div id="ai-verdict" style="font-size: 14px; line-height: 1.6;">Анализ данных...</div>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<footer id="ai-footer">
+    <div style="width:40px; height:40px; background:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:800;">AI</div>
+    <input type="text" id="ai-input" placeholder="Введите название района или вопрос для ИИ...">
+    <button class="ai-btn" onclick="askAi()">АНАЛИЗ</button>
+</footer>
+
+<script>
+    let myMap;
+    let currentMode = 'estate';
+
+    const colors = { 1: '#10b981', 2: '#84cc16', 3: '#f59e0b', 4: '#f97316', 5: '#ef4444' };
+
+    const coords = {
+        'medeu':     [[43.26, 76.94], [43.26, 77.05], [43.14, 77.05], [43.14, 76.94]],
+        'bostandyk': [[43.24, 76.87], [43.24, 76.96], [43.16, 76.96], [43.16, 76.87]],
+        'almaly':    [[43.26, 76.88], [43.26, 76.94], [43.24, 76.94], [43.24, 76.88]],
+        'auezov':    [[43.24, 76.80], [43.24, 76.87], [43.20, 76.87], [43.20, 76.80]],
+        'jetysu':    [[43.32, 76.88], [43.32, 76.96], [43.26, 76.96], [43.26, 76.88]],
+        'turksib':   [[43.40, 76.92], [43.40, 77.02], [43.32, 77.02], [43.32, 76.92]],
+        'alatau':    [[43.38, 76.78], [43.38, 76.88], [43.28, 76.88], [43.28, 76.78]],
+        'nauryzbay': [[43.20, 76.75], [43.20, 76.82], [43.12, 76.82], [43.12, 76.75]]
+    };
+
+    const db = {
+        'medeu': {
+            name: "Медеуский район",
+            estate:   { v1: "1 250 000 ₸", v2: "AQI 22 (Отлично)",  ai: "Премиальная локация. Идеальный воздух по AccuWeather полностью оправдывает высокие цены на Krisha.kz.", lvl: 1 },
+            commerce: { v1: "1 200 чел/час", v2: "Индекс 8.5/10",    ai: "Высокий потенциал для премиум-ритейла. Трафик ниже центра, но средний чек покупателей максимальный.", lvl: 2 },
+            city:     { v1: "2 100 чел/км²", v2: "4 / 10 баллов",    ai: "Акимату: Плотность населения в норме, дороги справляются с потоком. Зона комфорта.", lvl: 1 }
+        },
+        'bostandyk': {
+            name: "Бостандыкский район",
+            estate:   { v1: "850 000 ₸",    v2: "AQI 55 (Норма)",    ai: "Самая высокая ликвидность на рынке недвижимости. Золотая середина между ценой и качеством воздуха.", lvl: 2 },
+            commerce: { v1: "2 100 чел/час", v2: "Индекс 9.2/10",    ai: "Офисный и торговый центр. Идеально для открытия кофеен и бизнес-услуг. 2GIS показывает стабильный рост.", lvl: 1 },
+            city:     { v1: "8 500 чел/км²", v2: "9 / 10 баллов",    ai: "Критическая нагрузка! Трафик перегружен. Акимату рекомендуется мораторий на выдачу разрешений на новые ЖК.", lvl: 5 }
+        },
+        'almaly': {
+            name: "Алмалинский район",
+            estate:   { v1: "700 000 ₸",    v2: "AQI 125 (Смог)",    ai: "Исторический центр. Удобно, но AccuWeather предупреждает о вредном воздухе. Риск для проживания с детьми.", lvl: 4 },
+            commerce: { v1: "3 500 чел/час", v2: "Индекс 9.8/10",    ai: "Максимальный пешеходный трафик (Арбат, парки). Жесткая конкуренция, но лучшая окупаемость бизнеса.", lvl: 1 },
+            city:     { v1: "11 000 чел/км²", v2: "8 / 10 баллов",   ai: "Высокая плотность застройки старого фонда. Нагрузка на коммунальные сети близка к предельной.", lvl: 4 }
+        },
+        'auezov': {
+            name: "Ауэзовский район",
+            estate:   { v1: "520 000 ₸",    v2: "AQI 95 (Умеренно)", ai: "Спальный гигант. Цены доступны, воздух приемлемый. Наличие метро делает район привлекательным для аренды.", lvl: 3 },
+            commerce: { v1: "1 800 чел/час", v2: "Индекс 8.0/10",    ai: "Стабильный локальный спрос. 2GIS рекомендует развитие стрит-ритейла у станций метро и ТРЦ.", lvl: 2 },
+            city:     { v1: "14 000 чел/км²", v2: "7 / 10 баллов",   ai: "Самый густонаселенный район. Рекомендуется модернизация парковых зон и общественных пространств.", lvl: 4 }
+        },
+        'jetysu': {
+            name: "Жетысуский район",
+            estate:   { v1: "430 000 ₸",    v2: "AQI 145 (Вредно)",  ai: "Низкая инвестиционная привлекательность для жилья. Высокий уровень выбросов и шум от магистралей.", lvl: 5 },
+            commerce: { v1: "2 800 чел/час", v2: "Индекс 7.5/10",    ai: "Район барахолок и оптовых рынков. Огромный потенциал для B2B и складской коммерции.", lvl: 3 },
+            city:     { v1: "5 000 чел/км²", v2: "8 / 10 баллов",    ai: "Сложная транспортная ситуация из-за транзитных грузовиков. Требуется расширение северного кольца.", lvl: 4 }
+        },
+        'turksib': {
+            name: "Турксибский район",
+            estate:   { v1: "400 000 ₸",    v2: "AQI 160 (Опасно)",  ai: "Худшие показатели AccuWeather зимой. ИИ не рекомендует покупку жилья аллергикам.", lvl: 5 },
+            commerce: { v1: "900 чел/час",   v2: "Индекс 6.0/10",    ai: "Низкая покупательская способность. Рекомендуется открытие продуктовых дискаунтеров.", lvl: 4 },
+            city:     { v1: "3 500 чел/км²", v2: "6 / 10 баллов",    ai: "Нагрузка на дороги средняя, но инфраструктура изношена. Акимату: фокус на реновацию.", lvl: 2 }
+        },
+        'alatau': {
+            name: "Алатауский район",
+            estate:   { v1: "380 000 ₸",    v2: "AQI 175 (Опасно)",  ai: "Самое доступное жилье на Krisha.kz. Экологическая обстановка критическая из-за частного сектора на угле.", lvl: 5 },
+            commerce: { v1: "600 чел/час",   v2: "Индекс 5.5/10",    ai: "Развитие только в зонах крупных спорткомплексов. Коммерция в глубине района нерентабельна.", lvl: 5 },
+            city:     { v1: "3 000 чел/км²", v2: "5 / 10 баллов",    ai: "Плотность низкая. Проблема Акимата — газификация района для спасения экологии города.", lvl: 2 }
+        },
+        'nauryzbay': {
+            name: "Наурызбайский район",
+            estate:   { v1: "410 000 ₸",    v2: "AQI 50 (Хорошо)",   ai: "Новый перспективный район. Воздух чистый. ИИ советует брать квартиры в строящихся ЖК на долгосрок.", lvl: 2 },
+            commerce: { v1: "400 чел/час",   v2: "Индекс 6.5/10",    ai: "Трафик низкий. Инфраструктура только формируется. Открывать бизнес пока рискованно.", lvl: 4 },
+            city:     { v1: "2 000 чел/км²", v2: "3 / 10 баллов",    ai: "Лучший резерв города. Дороги свободны. Идеальное место для грамотного архитектурного планирования.", lvl: 1 }
+        }
+    };
+
+    const labels = {
+        estate:   { t1: "Krisha.kz",  l1: "Цена за м²",          t2: "AccuWeather",  l2: "Качество воздуха" },
+        commerce: { t1: "2GIS Data",  l1: "Пешеходный трафик",   t2: "Аналитика",    l2: "Индекс актуальности" },
+        city:     { t1: "Статистика", l1: "Плотность населения",  t2: "Sergek/2GIS",  l2: "Уровень пробок" }
+    };
+
+    // Словарь для распознавания района из текста пользователя
+    const districtMap = {
+        'медеу': 'medeu',           'медеуский': 'medeu',
+        'бостандык': 'bostandyk',   'бостандыкский': 'bostandyk',
+        'алмалы': 'almaly',         'алмалинский': 'almaly',
+        'ауэзов': 'auezov',         'ауэзовский': 'auezov',
+        'жетысу': 'jetysu',         'жетысуский': 'jetysu',
+        'турксиб': 'turksib',       'турксибский': 'turksib',
+        'алатау': 'alatau',         'алатауский': 'alatau',
+        'наурызбай': 'nauryzbay',   'наурызбайский': 'nauryzbay'
+    };
+
+    ymaps.ready(init);
+
+    function init() {
+        myMap = new ymaps.Map("map", { center: [43.23, 76.90], zoom: 11, controls: ['zoomControl'] });
+        drawMap();
+    }
+
+    function drawMap() {
+        myMap.geoObjects.removeAll();
+        for (let key in coords) {
+            let dataLvl = db[key][currentMode].lvl;
+            let polyColor = colors[dataLvl];
+
+            let poly = new ymaps.Polygon([coords[key]], { hintContent: db[key].name }, {
+                fillColor: polyColor + '66',
+                strokeColor: polyColor,
+                strokeWidth: 2,
+                openBalloonOnClick: false
+            });
+            poly.events.add('click', () => updateSidebar(key));
+            poly.events.add('mouseenter', (e) => e.get('target').options.set('fillOpacity', 0.8));
+            poly.events.add('mouseleave', (e) => e.get('target').options.set('fillOpacity', 0.4));
+
+            myMap.geoObjects.add(poly);
+        }
+    }
+
+    function updateSidebar(key) {
+        document.getElementById('placeholder').classList.add('hidden');
+        document.getElementById('content').classList.remove('hidden');
+
+        const d = db[key];
+        const m = d[currentMode];
+        const l = labels[currentMode];
+
+        document.getElementById('d-name').innerText = d.name;
+
+        document.getElementById('tag-1').innerText = l.t1;
+        document.getElementById('lbl-1').innerText = l.l1;
+        document.getElementById('val-1').innerText = m.v1;
+
+        document.getElementById('tag-2').innerText = l.t2;
+        document.getElementById('lbl-2').innerText = l.l2;
+        document.getElementById('val-2').innerText = m.v2;
+
+        document.getElementById('ai-verdict').innerText = m.ai;
+    }
+
+    function setMode(mode, btn) {
+        currentMode = mode;
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('placeholder').classList.remove('hidden');
+        document.getElementById('content').classList.add('hidden');
+        drawMap();
+    }
+
+    function toggleTheme() {
+        const body = document.body;
+        body.setAttribute('data-theme', body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    }
+
+    async function askAi() {
+        const inputEl = document.getElementById('ai-input');
+        const message = inputEl.value.trim();
+        if (!message) return;
+
+        const lowerMsg = message.toLowerCase();
+
+        // Ищем название района в запросе
+        let foundKey = null;
+        for (let word in districtMap) {
+            if (lowerMsg.includes(word)) {
+                foundKey = districtMap[word];
+                break;
+            }
+        }
+
+        // Если нашли район — показываем его данные как при клике на карту
+        if (foundKey) {
+            updateSidebar(foundKey);
+            inputEl.value = '';
+            return;
+        }
+
+        // Иначе — отправляем вопрос в Flask / ИИ
+        document.getElementById('placeholder').classList.add('hidden');
+        document.getElementById('content').classList.remove('hidden');
+        document.getElementById('d-name').innerText = '⏳ Анализирую...';
+        document.getElementById('ai-verdict').innerText = message;
+        document.getElementById('val-1').innerText = '—';
+        document.getElementById('val-2').innerText = '—';
+        inputEl.value = '';
+
+        try {
+            const response = await fetch("http://localhost:5000/ai", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message })
+            });
+
+            const data = await response.json();
+            document.getElementById('d-name').innerText = '⚡ ИИ-Ответ';
+            document.getElementById('ai-verdict').innerText = data.answer;
+
+        } catch (error) {
+            document.getElementById('d-name').innerText = '❌ Ошибка';
+            document.getElementById('ai-verdict').innerText = 'Не удалось подключиться к серверу. Убедись, что Flask запущен.';
+        }
+    }
+
+    // Отправка по Enter
+    document.getElementById('ai-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') askAi();
+    });
+</script>
+
+</body>
+</html>
