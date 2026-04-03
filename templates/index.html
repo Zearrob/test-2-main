@@ -156,16 +156,44 @@
         'наурызбай': 'nauryzbay',   'наурызбайский': 'nauryzbay'
     };
 
+    /** Map/sidebar stacked “half map” layout: only when viewport width ≤ 1024px (tablet/phone). */
+    var LAYOUT_STACKED_MQ = window.matchMedia('(max-width: 1024px)');
+
+    function fitMapViewport() {
+        if (myMap && myMap.container && myMap.container.fitToViewport) {
+            myMap.container.fitToViewport();
+        }
+    }
+
+    function syncStackedLayout() {
+        document.body.classList.toggle('layout-stacked', LAYOUT_STACKED_MQ.matches);
+        fitMapViewport();
+    }
+
+    if (LAYOUT_STACKED_MQ.addEventListener) {
+        LAYOUT_STACKED_MQ.addEventListener('change', syncStackedLayout);
+    } else {
+        LAYOUT_STACKED_MQ.addListener(syncStackedLayout);
+    }
+    syncStackedLayout();
+
     ymaps.ready(init);
 
     function init() {
         myMap = new ymaps.Map("map", { center: [43.23, 76.90], zoom: 11, controls: ['zoomControl'] });
         drawMap();
-        window.addEventListener('resize', function () {
-            if (myMap && myMap.container && myMap.container.fitToViewport) {
-                myMap.container.fitToViewport();
-            }
-        });
+        fitMapViewport();
+        requestAnimationFrame(fitMapViewport);
+        setTimeout(fitMapViewport, 100);
+        setTimeout(fitMapViewport, 400);
+
+        window.addEventListener('resize', fitMapViewport);
+        window.addEventListener('orientationchange', function () { setTimeout(fitMapViewport, 200); });
+
+        var mapEl = document.getElementById('map');
+        if (mapEl && typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(fitMapViewport).observe(mapEl);
+        }
     }
 
     function drawMap() {
