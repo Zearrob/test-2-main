@@ -20,10 +20,14 @@ def ai():
 
     url = "https://openrouter.ai/api/v1/chat/completions"
 
+    referer = os.environ.get("VERCEL_URL", "").strip()
+    if referer and not referer.startswith("http"):
+        referer = "https://" + referer
+
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
-        # "HTTP-Referer": "http://localhost",   # ← обязательно для free-моделей
+        "HTTP-Referer": referer or "http://localhost",
         "X-Title": "Almaty DataLab"
     }
 
