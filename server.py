@@ -8,7 +8,19 @@ app = Flask(__name__)
 _PUBLIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
 CORS(app)
 
-API_KEY = "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"
+
+def _openrouter_key():
+    """Must read OPENROUTER_API_KEY from env on Vercel — do not hardcode keys in source."""
+    return (os.environ.get("OPENROUTER_API_KEY") or "").strip()
+
+
+def _openrouter_referer():
+    site = (os.environ.get("SITE_URL") or os.environ.get("VERCEL_URL") or "").strip()
+    if site and not site.startswith("http"):
+        site = "https://" + site
+    if site:
+        return site
+    return request.headers.get("Origin") or request.headers.get("Referer") or "http://localhost"
 
 
 @app.route("/ai", methods=["POST"])
@@ -18,17 +30,20 @@ def ai():
     if user_input is None:
         return jsonify({"error": "message is required"}), 400
 
+    api_key = _openrouter_key()
+    if not api_key:
+        return jsonify({
+            "answer": "Задайте OPENROUTER_API_KEY в Vercel (Settings → Environment Variables), "
+            "включите для Production и Preview, затем Redeploy. Ключ не должен быть в коде."
+        })
+
     url = "https://openrouter.ai/api/v1/chat/completions"
 
-    referer = os.environ.get("VERCEL_URL", "").strip()
-    if referer and not referer.startswith("http"):
-        referer = "https://" + referer
-
     headers = {
-        "Authorization": f"Bearer {API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "HTTP-Referer": referer or "http://localhost",
-        "X-Title": "Almaty DataLab"
+        "HTTP-Referer": _openrouter_referer(),
+        "X-Title": "Almaty DataLab",
     }
 
     data = {
@@ -47,16 +62,28 @@ def ai():
         "include_reasoning": False
     }
 
-    response = requests.post(url, headers=headers, json=data)
-    result = response.json()
+    response = requests.post(url, headers=headers, json=data, timeout=60)
+    try:
+        result = response.json()
+    except Exception:
+        return jsonify({"answer": f"OpenRouter HTTP {response.status_code}: {response.text[:400]}"})
 
     # Логируем весь ответ — смотри в терминале Flask
     print("STATUS:", response.status_code)
     print("RESPONSE:", result)
 
+    if result.get("error"):
+        e = result["error"]
+        msg = e.get("message", str(e)) if isinstance(e, dict) else str(e)
+        code = e.get("code", response.status_code) if isinstance(e, dict) else response.status_code
+        hint = ""
+        if response.status_code == 401 or code == 401:
+            hint = " Проверьте ключ на https://openrouter.ai/keys и что в Vercel нет лишних пробелов в значении."
+        return jsonify({"answer": f"OpenRouter ({code}): {msg}.{hint}"})
+
     try:
         answer = result["choices"][0]["message"]["content"]
-        if not answer:  # ← бывает пустым у reasoning-моделей
+        if not answer:
             answer = result["choices"][0]["message"].get("reasoning", "Нет ответа")
     except Exception as e:
         print("PARSE ERROR:", e)
