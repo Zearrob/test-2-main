@@ -122,10 +122,6 @@ aside {
     overflow-wrap: anywhere;
 }
 
-/*
- * Stacked layout (map half-height + sidebar below): toggled by JS when width ≤ 1024px.
- * See syncStackedLayout() in index.html — do not rely on @media alone for this block.
- */
 body.layout-stacked #main {
     flex-direction: column;
 }
@@ -232,6 +228,22 @@ body.layout-stacked aside {
     flex: 1;
 }
 
+.hint {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0 0 12px;
+    line-height: 1.45;
+}
+
+[data-theme="dark"] .hint {
+    color: #9ca3af;
+}
+
+.ai-text {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
 #ai-footer {
     height: 90px;
     flex-shrink: 0;
@@ -242,6 +254,20 @@ body.layout-stacked aside {
     padding: 0 32px;
     gap: 20px;
     box-sizing: border-box;
+}
+
+.ai-mark {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #ai-input {
@@ -279,7 +305,6 @@ body.layout-stacked aside {
     display: none;
 }
 
-/* —— Mobile: map top, sidebar lower half, chat at bottom —— */
 @media (max-width: 768px) {
     header {
         padding: 10px 14px;
@@ -336,11 +361,11 @@ body.layout-stacked aside {
         gap: 10px;
     }
 
-    #ai-footer > div:first-child {
-        width: 36px !important;
-        height: 36px !important;
+    #ai-footer .ai-mark {
+        width: 36px;
+        height: 36px;
         min-width: 36px;
-        font-size: 13px !important;
+        font-size: 10px;
     }
 
     #ai-input {

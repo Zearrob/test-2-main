@@ -56,14 +56,14 @@
 
             <div class="ai-box">
                 <div class="ai-title">⚡ ИИ-Вердикт</div>
-                <div id="ai-verdict" style="font-size: 14px; line-height: 1.6;">Анализ данных...</div>
+                <div id="ai-verdict" class="ai-text">Анализ данных...</div>
             </div>
         </div>
     </aside>
 </div>
 
 <footer id="ai-footer">
-    <div style="width:40px; height:40px; background:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:800;">AI</div>
+    <div class="ai-mark">AI</div>
     <input type="text" id="ai-input" placeholder="Введите название района или вопрос для ИИ...">
     <button class="ai-btn" onclick="askAi()">АНАЛИЗ</button>
 </footer>
@@ -74,7 +74,6 @@
 
     const colors = { 1: '#10b981', 2: '#84cc16', 3: '#f59e0b', 4: '#f97316', 5: '#ef4444' };
 
-    /** #RRGGBB → darker shade (factor 0…1: how much to blend toward black) */
     function darkenHex(hex, factor) {
         const h = hex.replace('#', '');
         const r = parseInt(h.slice(0, 2), 16);
@@ -156,44 +155,30 @@
         'наурызбай': 'nauryzbay',   'наурызбайский': 'nauryzbay'
     };
 
-    /** Map/sidebar stacked “half map” layout: only when viewport width ≤ 1024px (tablet/phone). */
-    var LAYOUT_STACKED_MQ = window.matchMedia('(max-width: 1024px)');
+    var mq = window.matchMedia('(max-width: 1024px)');
 
-    function fitMapViewport() {
-        if (myMap && myMap.container && myMap.container.fitToViewport) {
-            myMap.container.fitToViewport();
-        }
+    function fitMap() {
+        if (myMap && myMap.container && myMap.container.fitToViewport) myMap.container.fitToViewport();
     }
 
-    function syncStackedLayout() {
-        document.body.classList.toggle('layout-stacked', LAYOUT_STACKED_MQ.matches);
-        fitMapViewport();
+    function layout() {
+        document.body.classList.toggle('layout-stacked', mq.matches);
+        fitMap();
     }
-
-    if (LAYOUT_STACKED_MQ.addEventListener) {
-        LAYOUT_STACKED_MQ.addEventListener('change', syncStackedLayout);
-    } else {
-        LAYOUT_STACKED_MQ.addListener(syncStackedLayout);
-    }
-    syncStackedLayout();
+    mq.addEventListener('change', layout);
+    layout();
 
     ymaps.ready(init);
 
     function init() {
         myMap = new ymaps.Map("map", { center: [43.23, 76.90], zoom: 11, controls: ['zoomControl'] });
         drawMap();
-        fitMapViewport();
-        requestAnimationFrame(fitMapViewport);
-        setTimeout(fitMapViewport, 100);
-        setTimeout(fitMapViewport, 400);
-
-        window.addEventListener('resize', fitMapViewport);
-        window.addEventListener('orientationchange', function () { setTimeout(fitMapViewport, 200); });
-
-        var mapEl = document.getElementById('map');
-        if (mapEl && typeof ResizeObserver !== 'undefined') {
-            new ResizeObserver(fitMapViewport).observe(mapEl);
-        }
+        fitMap();
+        requestAnimationFrame(fitMap);
+        window.addEventListener('resize', fitMap);
+        window.addEventListener('orientationchange', function () { setTimeout(fitMap, 150); });
+        var el = document.getElementById('map');
+        if (el && window.ResizeObserver) new ResizeObserver(fitMap).observe(el);
     }
 
     function drawMap() {
@@ -259,8 +244,6 @@
         if (!message) return;
 
         const lowerMsg = message.toLowerCase();
-
-        // Ищем название района в запросе
         let foundKey = null;
         for (let word in districtMap) {
             if (lowerMsg.includes(word)) {
@@ -269,14 +252,12 @@
             }
         }
 
-        // Если нашли район — показываем его данные как при клике на карту
         if (foundKey) {
             updateSidebar(foundKey);
             inputEl.value = '';
             return;
         }
 
-        // Иначе — отправляем вопрос в Flask / ИИ
         document.getElementById('placeholder').classList.add('hidden');
         document.getElementById('content').classList.remove('hidden');
         document.getElementById('d-name').innerText = '⏳ Анализирую...';
@@ -296,13 +277,12 @@
             document.getElementById('d-name').innerText = '⚡ ИИ-Ответ';
             document.getElementById('ai-verdict').innerText = data.answer;
 
-        } catch (error) {
+        } catch (err) {
             document.getElementById('d-name').innerText = '❌ Ошибка';
-            document.getElementById('ai-verdict').innerText = 'Не удалось подключиться к серверу. Убедись, что Flask запущен.';
+            document.getElementById('ai-verdict').innerText = 'Сервер недоступен.';
         }
     }
 
-    // Отправка по Enter
     document.getElementById('ai-input').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') askAi();
     });
