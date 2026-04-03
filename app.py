@@ -54,6 +54,14 @@ def ai():
 
     return jsonify({"answer": answer})
 
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.route("/style.css")
+def style_css():
+    return send_from_directory(_PUBLIC, "style.css")
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
