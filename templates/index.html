@@ -161,6 +161,11 @@
     function init() {
         myMap = new ymaps.Map("map", { center: [43.23, 76.90], zoom: 11, controls: ['zoomControl'] });
         drawMap();
+        window.addEventListener('resize', function () {
+            if (myMap && myMap.container && myMap.container.fitToViewport) {
+                myMap.container.fitToViewport();
+            }
+        });
     }
 
     function drawMap() {

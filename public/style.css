@@ -30,13 +30,23 @@ html {
     overflow: hidden;
 }
 
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    height: 100vh;
+}
+
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
     padding: 16px 32px;
     background: var(--panel);
     border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
 }
 
 .logo {
@@ -76,19 +86,25 @@ header {
 
 #main {
     display: flex;
-    height: calc(100vh - 160px);
+    flex: 1;
+    min-height: 0;
+    flex-direction: row;
 }
 
 #map {
     flex: 1;
+    min-width: 0;
+    min-height: 0;
 }
 
 aside {
     width: 420px;
+    flex-shrink: 0;
     padding: 24px;
     overflow-y: auto;
     background: var(--bg);
     border-left: 1px solid var(--border);
+    min-height: 0;
 }
 
 .district-title {
@@ -167,12 +183,14 @@ aside {
 
 #ai-footer {
     height: 90px;
+    flex-shrink: 0;
     background: var(--panel);
     border-top: 1px solid var(--border);
     display: flex;
     align-items: center;
     padding: 0 32px;
     gap: 20px;
+    box-sizing: border-box;
 }
 
 #ai-input {
@@ -208,4 +226,108 @@ aside {
 
 .hidden {
     display: none;
+}
+
+/* —— Mobile: map top, sidebar lower half, chat at bottom —— */
+@media (max-width: 768px) {
+    header {
+        padding: 10px 14px;
+        gap: 8px;
+    }
+
+    .logo {
+        font-size: 17px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .tabs {
+        order: 3;
+        flex-basis: 100%;
+        width: 100%;
+        justify-content: stretch;
+        padding: 3px;
+    }
+
+    .tabs button {
+        flex: 1;
+        padding: 9px 8px;
+        font-size: 11px;
+        text-align: center;
+    }
+
+    .theme-btn {
+        flex-shrink: 0;
+    }
+
+    #main {
+        flex-direction: column;
+    }
+
+    /* Upper half ≈ lower half of the area between header and chat */
+    #map {
+        flex: 1 1 50%;
+        width: 100%;
+        min-height: 200px;
+        max-height: none;
+    }
+
+    aside {
+        flex: 1 1 50%;
+        width: 100%;
+        min-height: 0;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        padding: 14px 16px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .district-title {
+        font-size: 22px;
+    }
+
+    .data-card {
+        padding: 14px;
+        margin-bottom: 12px;
+    }
+
+    .stat-value {
+        font-size: 20px;
+    }
+
+    .ai-box {
+        padding: 14px;
+    }
+
+    #ai-footer {
+        height: auto;
+        min-height: 72px;
+        padding: 10px 12px 12px;
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+        gap: 10px;
+    }
+
+    #ai-footer > div:first-child {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px;
+        font-size: 13px !important;
+    }
+
+    #ai-input {
+        padding: 12px 16px;
+        font-size: 16px; /* avoids iOS zoom on focus */
+    }
+
+    .ai-btn {
+        padding: 12px 18px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 380px) {
+    .tabs button {
+        font-size: 10px;
+        padding: 8px 4px;
+    }
 }
