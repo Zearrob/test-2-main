@@ -1,8 +1,11 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+import os
+
 import requests
+from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask_cors import CORS
 
 app = Flask(__name__)
+_PUBLIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
 CORS(app)
 
 API_KEY = "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"
@@ -10,7 +13,10 @@ API_KEY = "sk-or-v1-22788e13a8ee1972be5b4493b3af0d50e6a461178b2acbac94c3d0fd5485
 
 @app.route("/ai", methods=["POST"])
 def ai():
-    user_input = request.json.get("message")
+    payload = request.get_json(silent=True) or {}
+    user_input = payload.get("message")
+    if user_input is None:
+        return jsonify({"error": "message is required"}), 400
 
     url = "https://openrouter.ai/api/v1/chat/completions"
 
